@@ -1,0 +1,199 @@
+---
+console.log('Rendering ImageSearch component');
+---
+
+<div class="image-search">
+  <div class="search-container">
+    <input 
+      type="text" 
+      id="searchInput" 
+      placeholder="Search for images..."
+      class="search-input"
+    />
+    <button type="button" id="searchButton" class="search-button">Search</button>
+  </div>
+  <div id="results" class="results-grid"></div>
+  <div id="loading" class="loading-indicator" style="display: none;">
+    Searching for images...
+  </div>
+</div>
+
+<style>
+  .image-search {
+    width: 100%;
+    margin: 0 auto;
+    background: #f9f9f9;
+    border-radius: 4px;
+    padding: 15px;
+  }
+
+  .search-container {
+    display: flex;
+    gap: 10px;
+    margin-bottom: 20px;
+  }
+
+  .search-input {
+    flex: 1;
+    padding: 10px;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+    font-size: 16px;
+  }
+
+  .search-button {
+    padding: 10px 20px;
+    background-color: #4a9eff;
+    color: white;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 16px;
+  }
+
+  .search-button:hover {
+    background-color: #357abd;
+  }
+
+  .results-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+    gap: 15px;
+    margin-top: 20px;
+    max-height: 400px;
+    overflow-y: auto;
+    padding: 10px;
+    background: white;
+    border-radius: 4px;
+    border: 1px solid #ddd;
+  }
+
+  .image-card {
+    border-radius: 8px;
+    overflow: hidden;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+    cursor: pointer;
+    transition: transform 0.2s;
+    background: white;
+    border: 2px solid transparent;
+  }
+
+  .image-card:hover {
+    transform: translateY(-2px);
+  }
+
+  .image-card.selected {
+    border-color: #4a9eff;
+  }
+
+  .image-card img {
+    width: 100%;
+    height: 100px;
+    object-fit: cover;
+  }
+
+  .image-info {
+    padding: 8px;
+    font-size: 12px;
+    color: #666;
+    border-top: 1px solid #eee;
+  }
+
+  .loading-indicator {
+    text-align: center;
+    padding: 20px;
+    color: #666;
+    font-style: italic;
+  }
+</style>
+
+<script>
+  function setupImageSearch() {
+    console.log('Setting up ImageSearch functionality');
+    const searchInput = document.getElementById('searchInput') as HTMLInputElement;
+    const searchButton = document.getElementById('searchButton');
+    const resultsDiv = document.getElementById('results');
+    const loadingDiv = document.getElementById('loading');
+    let selectedCard: HTMLElement | null = null;
+
+    async function searchImages(e?: Event) {
+      e?.preventDefault(); // Prevent any form submission
+      
+      const searchQuery = searchInput.value.trim();
+      if (!searchQuery) return;
+
+      console.log('Searching for images with query:', searchQuery);
+      try {
+        if (loadingDiv) loadingDiv.style.display = 'block';
+        if (resultsDiv) resultsDiv.style.display = 'none';
+
+        const response = await fetch(`/api/photos/search?query=${encodeURIComponent(searchQuery)}`);
+        const data = await response.json();
+        console.log('Search results:', data);
+
+        if (resultsDiv) {
+          resultsDiv.innerHTML = '';
+          
+          data.results.forEach((photo: any) => {
+            const card = document.createElement('div');
+            card.className = 'image-card';
+            card.dataset.imageUrl = photo.urls.regular;
+            
+            card.innerHTML = `
+              <img src="${photo.urls.small}" alt="${photo.alt_description || 'Unsplash photo'}" />
+              <div class="image-info">
+                <div class="photographer">By ${photo.user.name}</div>
+              </div>
+            `;
+
+            card.addEventListener('click', (e) => {
+              e.preventDefault(); // Prevent any form submission
+              if (selectedCard) {
+                selectedCard.classList.remove('selected');
+              }
+              card.classList.add('selected');
+              selectedCard = card;
+
+              // Dispatch custom event with selected image URL
+              const event = new CustomEvent('imageSelected', {
+                detail: {
+                  imageUrl: photo.urls.regular
+                }
+              });
+              document.dispatchEvent(event);
+              console.log('Image selected:', photo.urls.regular);
+            });
+            
+            resultsDiv.appendChild(card);
+          });
+
+          resultsDiv.style.display = 'grid';
+        }
+      } catch (error) {
+        console.error('Error searching images:', error);
+      } finally {
+        if (loadingDiv) loadingDiv.style.display = 'none';
+      }
+    }
+
+    // Add click event listener to search button
+    searchButton?.addEventListener('click', searchImages);
+
+    // Handle Enter key in search input
+    searchInput?.addEventListener('keypress', (e) => {
+      if (e.key === 'Enter') {
+        e.preventDefault(); // Prevent form submission
+        searchImages();
+      }
+    });
+
+    // Expose searchImages function globally but don't auto-trigger it
+    (window as any).searchImagesFor = (query: string) => {
+      searchInput.value = query;
+      // Don't automatically trigger search
+    };
+  }
+
+  // Setup the image search functionality when the DOM is loaded
+  document.addEventListener('DOMContentLoaded', setupImageSearch);
+</script>

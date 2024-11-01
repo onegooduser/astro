@@ -1,17 +1,10 @@
 ---
-interface Props {
-    post?: {
-        id?: number;
-        title: string;
-        slug: string;
-        description: string;
-        content: string;
-        heroImage?: string;
-    };
-}
+import ImageSearch from './ImageSearch.astro';
 
 const { post } = Astro.props;
 const isEditing = !!post?.id;
+
+console.log('Rendering PostForm with ImageSearch component');
 ---
 
 <form class="post-form" data-is-editing={isEditing}>
@@ -46,33 +39,47 @@ const isEditing = !!post?.id;
             name="description" 
             rows="3"
         >{post?.description || ''}</textarea>
-        <p class="help-text">This description will help guide the AI in generating relevant content.</p>
+        <p class="help-text">This description will help guide the AI in generating content.</p>
     </div>
 
-    {isEditing && (
-        <div class="form-group">
-            <label for="content">Content:</label>
-            <textarea 
-                id="content" 
-                name="content" 
-                rows="10" 
-                required
-            >{post?.content || ''}</textarea>
-        </div>
-    )}
+    <div class="form-group">
+        <label for="content">Content:</label>
+        <textarea 
+            id="content" 
+            name="content" 
+            rows="10" 
+            required
+        >{post?.content || ''}</textarea>
+    </div>
 
     <div class="form-group">
-        <label for="heroImage">Hero Image URL:</label>
-        <input 
-            type="text" 
-            id="heroImage" 
-            name="heroImage" 
-            value={post?.heroImage || ''}
-        />
+        <label>Hero Image:</label>
+        <div class="hero-image-section">
+            <input 
+                type="text" 
+                id="heroImage" 
+                name="heroImage" 
+                value={post?.heroImage || ''}
+                readonly
+                placeholder="Select an image below"
+            />
+            <div class="hero-image-preview">
+                <img id="heroImagePreview" src={post?.heroImage || ''} style="display: none;" />
+            </div>
+        </div>
+    </div>
+
+    <div class="form-group">
+        <label>Search and Select an Image:</label>
+        <p class="help-text">Click the Search button to find images based on your title and description.</p>
+        <div class="image-search-wrapper">
+            <ImageSearch />
+        </div>
+        <button type="button" id="useContentButton" class="secondary-btn">Use Title & Description</button>
     </div>
 
     <button type="submit" class="submit-btn">
-        {isEditing ? 'Update Post' : 'Create Post'}
+        {isEditing ? 'Save Post' : 'Generate Post'}
     </button>
 
     <div class="loading-overlay" style="display: none;">
@@ -87,6 +94,9 @@ const isEditing = !!post?.id;
         margin: 0 auto;
         padding: 20px;
         position: relative;
+        background: white;
+        border-radius: 8px;
+        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
     }
 
     .form-group {
@@ -97,6 +107,7 @@ const isEditing = !!post?.id;
         display: block;
         margin-bottom: 5px;
         font-weight: bold;
+        color: #333;
     }
 
     .help-text {
@@ -114,9 +125,33 @@ const isEditing = !!post?.id;
         font-size: 16px;
     }
 
-    .submit-btn {
-        background-color: #4a9eff;
-        color: white;
+    input[readonly] {
+        background-color: #f5f5f5;
+        cursor: not-allowed;
+    }
+
+    .hero-image-section {
+        margin-top: 10px;
+    }
+
+    .hero-image-preview {
+        margin-top: 10px;
+        border-radius: 4px;
+        overflow: hidden;
+        max-height: 300px;
+    }
+
+    .hero-image-preview img {
+        width: 100%;
+        height: auto;
+        border-radius: 4px;
+    }
+
+    .image-search-wrapper {
+        margin-top: 10px;
+    }
+
+    .submit-btn, .secondary-btn {
         padding: 10px 20px;
         border: none;
         border-radius: 4px;
@@ -124,8 +159,24 @@ const isEditing = !!post?.id;
         font-size: 16px;
     }
 
+    .submit-btn {
+        background-color: #4a9eff;
+        color: white;
+        margin-top: 20px;
+    }
+
+    .secondary-btn {
+        background-color: #f0f0f0;
+        color: #333;
+        margin-top: 10px;
+    }
+
     .submit-btn:hover {
         background-color: #357abd;
+    }
+
+    .secondary-btn:hover {
+        background-color: #e0e0e0;
     }
 
     .loading-overlay {
@@ -140,6 +191,7 @@ const isEditing = !!post?.id;
         align-items: center;
         justify-content: center;
         z-index: 1000;
+        border-radius: 8px;
     }
 
     .loading-spinner {
@@ -161,8 +213,47 @@ const isEditing = !!post?.id;
 <script>
     const form = document.querySelector('.post-form') as HTMLFormElement;
     const loadingOverlay = document.querySelector('.loading-overlay') as HTMLElement;
-    
+    const titleInput = document.getElementById('title') as HTMLInputElement;
+    const descriptionInput = document.getElementById('description') as HTMLTextAreaElement;
+    const heroImageInput = document.getElementById('heroImage') as HTMLInputElement;
+    const heroImagePreview = document.getElementById('heroImagePreview') as HTMLImageElement;
+    const searchInput = document.getElementById('searchInput') as HTMLInputElement;
+    const useContentButton = document.getElementById('useContentButton') as HTMLButtonElement;
+
+    function updateHeroImagePreview() {
+        const imageUrl = heroImageInput.value.trim();
+        if (imageUrl) {
+            heroImagePreview.src = imageUrl;
+            heroImagePreview.style.display = 'block';
+        } else {
+            heroImagePreview.style.display = 'none';
+        }
+    }
+
     if (form) {
+        console.log('PostForm script initialized');
+
+        // Use title and description for search when button is clicked
+        useContentButton?.addEventListener('click', (e) => {
+            e.preventDefault(); // Prevent form submission
+            const title = titleInput.value.trim();
+            const description = descriptionInput.value.trim();
+            if (title || description) {
+                const searchQuery = `${title} ${description}`.trim();
+                console.log('Using content for search:', searchQuery);
+                if (searchInput) {
+                    searchInput.value = searchQuery;
+                }
+            }
+        });
+
+        // Listen for image selection from ImageSearch component
+        document.addEventListener('imageSelected', ((e: CustomEvent) => {
+            console.log('Image selected:', e.detail.imageUrl);
+            heroImageInput.value = e.detail.imageUrl;
+            updateHeroImagePreview();
+        }) as EventListener);
+
         form.addEventListener('submit', async (e) => {
             e.preventDefault();
             
@@ -204,5 +295,8 @@ const isEditing = !!post?.id;
                 loadingOverlay.style.display = 'none';
             }
         });
+
+        // Initial preview if heroImage exists
+        updateHeroImagePreview();
     }
 </script>

@@ -19,6 +19,9 @@ try {
 const searchParams = Astro.url.searchParams;
 const editingPostId = searchParams.get('edit');
 const editingPost = editingPostId ? posts.find(post => post.id.toString() === editingPostId) : undefined;
+
+// Show form if we're editing or if showForm is set
+const showForm = editingPostId || searchParams.get('showForm') === 'true';
 ---
 
 <!doctype html>
@@ -96,8 +99,27 @@ const editingPost = editingPostId ? posts.find(post => post.id.toString() === ed
         display: none;
       }
 
+      .post-form-section.visible {
+        display: block;
+      }
+
       h1, h2 {
         margin-bottom: 1em;
+      }
+
+      .cancel-btn {
+        background-color: #6c757d;
+        color: white;
+        padding: 10px 20px;
+        border: none;
+        border-radius: 4px;
+        cursor: pointer;
+        font-size: 16px;
+        margin-left: 10px;
+      }
+
+      .cancel-btn:hover {
+        background-color: #5a6268;
       }
     </style>
   </head>
@@ -110,9 +132,10 @@ const editingPost = editingPostId ? posts.find(post => post.id.toString() === ed
         <button id="newPostBtn" class="create-btn">Create New Post</button>
       </section>
 
-      <section id="postForm" class="post-form-section">
+      <section id="postForm" class={`post-form-section ${showForm ? 'visible' : ''}`}>
         <h2 id="formTitle">Create New Post</h2>
         <PostForm post={editingPost} />
+        <button id="cancelBtn" class="cancel-btn">Cancel</button>
       </section>
 
       <section class="posts-list">
@@ -139,6 +162,7 @@ const editingPost = editingPostId ? posts.find(post => post.id.toString() === ed
 
     <script>
       const newPostBtn = document.getElementById('newPostBtn');
+      const cancelBtn = document.getElementById('cancelBtn');
       const postForm = document.getElementById('postForm');
       const formTitle = document.getElementById('formTitle');
       
@@ -157,8 +181,13 @@ const editingPost = editingPostId ? posts.find(post => post.id.toString() === ed
           });
           form.dataset.isEditing = 'false';
         }
-        postForm!.style.display = 'block';
+        postForm?.classList.add('visible');
         formTitle!.textContent = 'Create New Post';
+      });
+
+      // Hide form on cancel
+      cancelBtn?.addEventListener('click', () => {
+        postForm?.classList.remove('visible');
       });
 
       // Handle edit button clicks
@@ -191,7 +220,7 @@ const editingPost = editingPostId ? posts.find(post => post.id.toString() === ed
             });
           }
           
-          postForm!.style.display = 'block';
+          postForm?.classList.add('visible');
           formTitle!.textContent = 'Edit Post';
         });
       });
