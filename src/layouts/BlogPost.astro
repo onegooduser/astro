@@ -1,11 +1,17 @@
 ---
-import type { CollectionEntry } from 'astro:content';
 import BaseHead from '../components/BaseHead.astro';
 import Header from '../components/Header.astro';
 import Footer from '../components/Footer.astro';
 import FormattedDate from '../components/FormattedDate.astro';
 
-type Props = CollectionEntry<'blog'>['data'];
+interface Props {
+    title: string;
+    description?: string;
+    pubDate: string;
+    updatedDate?: string;
+    heroImage?: string;
+    content: string;
+}
 
 const { title, description, pubDate, updatedDate, heroImage } = Astro.props;
 ---
@@ -51,6 +57,20 @@ const { title, description, pubDate, updatedDate, heroImage } = Astro.props;
 			.last-updated-on {
 				font-style: italic;
 			}
+            .content {
+                margin-top: 2em;
+                line-height: 1.6;
+            }
+            .content :global(h2) {
+                margin-top: 2em;
+                margin-bottom: 1em;
+            }
+            .content :global(ul) {
+                margin-left: 2em;
+            }
+            .content :global(li) {
+                margin: 0.5em 0;
+            }
 		</style>
 	</head>
 
@@ -76,7 +96,9 @@ const { title, description, pubDate, updatedDate, heroImage } = Astro.props;
 						<h1>{title}</h1>
 						<hr />
 					</div>
-					<slot />
+                    <div class="content">
+					    <slot />
+                    </div>
 				</div>
 			</article>
 		</main>

@@ -3,12 +3,14 @@ import BaseHead from '../../components/BaseHead.astro';
 import Header from '../../components/Header.astro';
 import Footer from '../../components/Footer.astro';
 import { SITE_TITLE, SITE_DESCRIPTION } from '../../consts';
-import { getCollection } from 'astro:content';
 import FormattedDate from '../../components/FormattedDate.astro';
+import db from '../../db/setup';
 
-const posts = (await getCollection('blog')).sort(
-	(a, b) => b.data.pubDate.valueOf() - a.data.pubDate.valueOf(),
-);
+const posts = db.prepare(`
+    SELECT * FROM posts 
+    WHERE draft = 0 
+    ORDER BY pubDate DESC
+`).all();
 ---
 
 <!doctype html>
@@ -18,6 +20,9 @@ const posts = (await getCollection('blog')).sort(
 		<style>
 			main {
 				width: 960px;
+				max-width: calc(100% - 2em);
+				margin: 0 auto;
+				padding: 3em 1em;
 			}
 			ul {
 				display: flex;
@@ -94,11 +99,17 @@ const posts = (await getCollection('blog')).sort(
 						posts.map((post) => (
 							<li>
 								<a href={`/blog/${post.slug}/`}>
-									<img width={720} height={360} src={post.data.heroImage} alt="" />
-									<h4 class="title">{post.data.title}</h4>
+									{post.heroImage && <img width={720} height={360} src={post.heroImage} alt="" />}
+									<h4 class="title">{post.title}</h4>
 									<p class="date">
-										<FormattedDate date={post.data.pubDate} />
+										<FormattedDate date={post.pubDate} />
+										{post.updatedDate && (
+											<div class="last-updated-on">
+												Last updated on <FormattedDate date={post.updatedDate} />
+											</div>
+										)}
 									</p>
+                                    {post.description && <p class="description">{post.description}</p>}
 								</a>
 							</li>
 						))
