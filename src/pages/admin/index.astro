@@ -5,7 +5,15 @@ import Footer from '../../components/Footer.astro';
 import PostForm from '../../components/PostForm.astro';
 import { SITE_TITLE, SITE_DESCRIPTION } from '../../consts';
 
-let posts = [];
+interface Post {
+  id: number;
+  title: string;
+  description: string;
+  slug: string;
+  [key: string]: any;
+}
+
+let posts: Post[] = [];
 try {
   const response = await fetch(`${Astro.url.origin}/api/posts`);
   if (response.ok) {
@@ -77,11 +85,25 @@ const showForm = editingPostId || searchParams.get('showForm') === 'true';
         margin-top: 15px;
       }
 
-      .edit-btn, .delete-btn {
-        padding: 5px 15px;
+      .edit-btn, .delete-btn, .read-btn {
+        padding: 8px 16px;
         border: none;
         border-radius: 4px;
         cursor: pointer;
+        display: inline-block;
+        text-align: center;
+        font-size: 14px;
+        min-width: 80px;
+      }
+
+      .read-btn {
+        background-color: #6c757d;
+        color: white;
+        text-decoration: none;
+      }
+
+      .read-btn:hover {
+        background-color: #5a6268;
       }
 
       .edit-btn {
@@ -141,11 +163,14 @@ const showForm = editingPostId || searchParams.get('showForm') === 'true';
       <section class="posts-list">
         <h2>All Posts</h2>
         <div class="posts-grid">
-          {posts.map((post) => (
+          {posts.map((post: Post) => (
             <div class="post-card">
               <h3>{post.title}</h3>
               <p>{post.description}</p>
               <div class="post-actions">
+                <a href={`/blog/${post.slug}`} class="read-btn">
+                  Read
+                </a>
                 <button class="edit-btn" data-post={JSON.stringify(post)}>
                   Edit
                 </button>
